@@ -9,7 +9,7 @@
 
 int main()
 {
-	std::cout << "If it's your first time to use the program, please read 'readme.txt' to avoid problems");
+	std::cout << "If it's your first time to use the program, please read 'readme.txt' to avoid problems";
 	std::vector< std::vector<std::string> > csv_file;
 	std::string file_name = read_text("What is tha name of the file? (must be in the same directory) ");
 	if(read_csv(file_name.c_str(), csv_file) == true)
