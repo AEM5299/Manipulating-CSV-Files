@@ -3,7 +3,11 @@
 #include <vector>
 #include <string>
 #include "csv.h"
+#include "types.h"
 
+/*
+*	A list of the main menu options
+*/
 enum main_menu_options
 {
 	OPTION_CHECK_RANGE,
@@ -14,6 +18,12 @@ enum main_menu_options
 	OPTION_MAX_NUM
 };
 
-void main_menu(std::vector< std::vector<std::string> > &csv_file, std::vector<double> &operations, std::vector<csv_summary> &summary);
+/*
+*	The main menu to control the program....
+*	@param		my_csv_file		a csv_file that containt read file data.
+*	@param		operations		a vector to use for different operations
+*	@param		summary			a vector to save a summary of the operations the user did.
+*/
+void main_menu(csv_file &my_csv_file);
 
 #endif
