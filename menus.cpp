@@ -9,9 +9,7 @@
 
 /*
 *	The main menu to control the program....
-*	@param		my_csv_file		a csv_file that containt read file data.
-*	@param		operations		a vector to use for different operations
-*	@param		summary			a vector to save a summary of the operations the user did.
+*	@param		my_csv_file		a csv_file that contain file's data.
 */
 void main_menu(csv_file &my_csv_file)
 {
@@ -21,9 +19,8 @@ void main_menu(csv_file &my_csv_file)
 		std::cout << "What do you want to do with the data?" << std::endl;
 		std::cout << "1: Check a column against a range" << std::endl;
 		std::cout << "2: Calculate average, min and max for a column" << std::endl;
-		std::cout << "3: Evaluate Data (general rating for your data) NOT IMPLEMENTED YET" << std::endl;
-		std::cout << "4: Save a copy of your summary to a file" << std::endl;
-		std::cout << "5: Quit" << std::endl;
+		std::cout << "3: Save a copy of your summary to a file" << std::endl;
+		std::cout << "4: Quit" << std::endl;
 		option = get_option("Enter Your Option: ");
 
 		switch(option)
@@ -48,11 +45,6 @@ void main_menu(csv_file &my_csv_file)
 					get_avg_min_max(my_csv_file, idx);
 				}
 				else std::cout << "There are no such header" << std::endl;
-				break;
-			}
-			case OPTION_EVALUATE_DATA:
-			{
-				//not actived yet!
 				break;
 			}
 			case OPTION_OUTPUT_SUMMARY:

@@ -36,17 +36,16 @@ bool read_csv(const char file_name[], csv_file &my_file_info)
 				std::getline(temp, substr, ',');		//save data to the next comma in the substring
 				dummy.push_back(substr);				//push the substring in dummy vector
 			}
-			my_file_info.vector.push_back(dummy);		//push entire dumm vector into our file's vector
+			my_file_info.vector.push_back(dummy);		//push entire dummy vector into our file's vector
 		}
 		my_file.close();								//close file
 		my_file_info.has_headers = read_boolean("Does your file have headers? (y/n) ");		//do the file have headers? will be used to determine behaviour later
+		std::cout << "Your file has been read successfully" << std::endl;
 		return true;
 	}
 	else 
 	{
 		std::cout << "Unable to open file" << std::endl;
-		//std::cout << "Press Enter to Exit...";
-		//std::cin.ignore(32767, '\n');				//Not needed any more, will loop until successing or exiting
 		return false;
 	}
 
@@ -95,10 +94,15 @@ int get_index_by_header(const std::vector<std::string> &headers, const std::stri
 *	Converts a vector of strings, to a vector of doubles
 *	@param		my_csv_file			the file's data
 *	@param		idx					the index if the column we want to convert
-*	@return		bool				Did the conversion succeed?
+*	@return		bool				true if file reading succeeded, false otherwise
 */
 bool convert_csv_data_double(csv_file &my_csv_file, int idx)
 {
+	static int last_index = -1;			//to keep it's value when the function exit
+	
+	if (last_index == idx)
+		return true;					//the vector already have the data, we don't need to convert it again
+	
 	my_csv_file.operations_vector.clear();
 	for(int i = my_csv_file.has_headers? 1 : 0; i < my_csv_file.vector.size(); i++)
 	{
@@ -107,14 +111,15 @@ bool convert_csv_data_double(csv_file &my_csv_file, int idx)
 			my_csv_file.operations_vector.push_back(std::stod(my_csv_file.vector[i][idx]));
 		} catch (const std::invalid_argument& ia)
 		{
-			std::cout << "This header containts non-numbers data at " << i << std::endl;
+			std::cout << "This header containts non-numbers data at " << get_index_alignment(my_csv_file, i) << std::endl;
 			return false;
 		} catch (const std::out_of_range& ia)
 		{
-			std::cout << "This column contain data out of range at " << i << std::endl;
+			std::cout << "This column contain data out of range at " << get_index_alignment(my_csv_file, i) << std::endl;
 			return false; 
 		}
 	}
+	last_index = idx;
 	return true;
 }
 
@@ -149,25 +154,28 @@ void check_against_range(csv_file &my_csv_file, int idx)
 				more_than.push_back(i);						//if more than maximum, push index to the vector
 		}
 
-
-		if (less_than.size() != 0)		//Is the vector empty?
+		bool results_to_screen = false;
+		if (less_than.size() != 0 || more_than.size() != 0)			//is atleast one of them not empty?
+			results_to_screen = read_boolean("Do you want to print the results to the screen? (either way the results will be saved to the summary) (y/n): ");
+		
+		if (results_to_screen)
 		{
-			std::cout << "The following is the index(s) of the data less than the minimum:-" << std::endl;
 			//To iterate over the entire vector of indices
 			for(int i = 0; i < less_than.size(); i++)
 			{
+				if (i == 0)
+					std::cout << "The following is the index(s) of the data less than the minimum:-" << std::endl;
+
 				std::cout << get_index_alignment(my_csv_file, less_than[i]);
 				if (i == less_than.size() - 1) std::cout << "\n";			//is it the last element?
 				else std::cout << ", ";
 			}
-		}
 
-		if (more_than.size() != 0)		//Is the vector empty?
-		{
-			std::cout << "The following is the index(s) of the data larger than the maximum:-" << std::endl;
 			//To iterate over the entire vector of indices
 			for(int i = 0; i < more_than.size(); i++)
 			{
+				if (i == 0)
+					std::cout << "The following is the index(s) of the data larger than the maximum:-" << std::endl;
 				std::cout << get_index_alignment(my_csv_file, more_than[i]);
 				if (i == more_than.size() - 1) std::cout << "\n";
 				else std::cout << ", ";			//is it the last element?
@@ -178,8 +186,6 @@ void check_against_range(csv_file &my_csv_file, int idx)
 		double arr[] = {min, max};
 		update_summary(my_csv_file, idx, arr, less_than, more_than);
 
-		//Clear the vector for future operations
-		my_csv_file.operations_vector.clear();
 	}
 	
 }
@@ -191,7 +197,7 @@ void check_against_range(csv_file &my_csv_file, int idx)
 */
 void get_avg_min_max(csv_file &my_csv_file, int idx)
 {
-	//Did the conversion to doubles succeed?
+	//Did the conversion to double succeed?
 	if (convert_csv_data_double(my_csv_file, idx))
 	{
 		//is the vector empty?
@@ -232,8 +238,6 @@ void get_avg_min_max(csv_file &my_csv_file, int idx)
 		double arr[] = {min, sum / my_csv_file.operations_vector.size(), max, (double)min_idx, (double)max_idx};
 		update_summary(my_csv_file, idx, arr);
 
-		//Clear the vector for future operations
-		my_csv_file.operations_vector.clear();
 	}
 	
 }

@@ -54,6 +54,7 @@ int get_index_by_header(const std::vector<std::string> &headers, const std::stri
 *	Converts a vector of strings, to a vector of doubles
 *	@param		my_csv_file			the file's data
 *	@param		idx					the index if the column we want to convert
+*	@return		bool				true if file reading succeeded, false otherwise
 */
 bool convert_csv_data_double(csv_file &my_csv_file, int idx);
 
@@ -96,7 +97,7 @@ void update_summary(csv_file &my_csv_file, int index, const double* data, const 
 *	indeices printed are user indeices (for more information read get_index_alignment documentation)
 *	@param		my_file		the opened file's data
 */
-void output_summary(csv_file &my_file);
+void output_summary(const csv_file &my_file);
 
 /*
 *	A function to facilitate choosing a column to operate on, wheather the file have headers or not.
@@ -113,6 +114,6 @@ int get_col_to_operate_on (const csv_file &my_file);
 *	@param		idx			C-index we want to convert.
 *	@return		int			The User-index
 */
-int get_index_alignment(csv_file &my_file, int idx);
+int get_index_alignment(const csv_file &my_file, int idx);
 
 #endif

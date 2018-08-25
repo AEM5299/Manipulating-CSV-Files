@@ -20,7 +20,6 @@ int main()
 		file_name = read_text("What is tha name of the file? ");
 	}
 	
-	std::cout << "Your file has been read successfully" << std::endl;
 	main_menu(my_file);
 
 	return 0;
