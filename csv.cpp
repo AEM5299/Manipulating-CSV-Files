@@ -347,7 +347,7 @@ void update_summary(csv_file &my_csv_file, int index, const double* data, const 
 *	indeices printed are user indeices (for more information read get_index_alignment documentation)
 *	@param		my_file		the opened file's data
 */
-void output_summary(csv_file &my_file)
+void output_summary(const csv_file &my_file)
 {
 	std::ofstream output_file;
 	output_file.open("Output.txt", std::ofstream::trunc);		//Open the file, and discard any contents
@@ -422,7 +422,7 @@ int get_col_to_operate_on (const csv_file &my_file)
 *	@param		idx			C-index we want to convert.
 *	@return		int			The User-index
 */
-int get_index_alignment(csv_file &my_file, int idx)
+int get_index_alignment(const csv_file &my_file, int idx)
 {
 	if (idx == -1) return 0;		//out of range
 
