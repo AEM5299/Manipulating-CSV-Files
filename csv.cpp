@@ -473,7 +473,7 @@ int get_index_alignment(const csv_file &my_file, int idx)
 void user_defined_operations(csv_file &my_file)
 {
 	string_2d_vector operations;		//a vector to save the data to
-	read_csv_file("operations.csv", operations, true);		//read the file into operations vector
+	read_csv_file("UserOperations.csv", operations, true);		//read the file into operations vector
 
 	parse_user_operations(operations, my_file);			//translate the data
 }
