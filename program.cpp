@@ -14,7 +14,7 @@ int main()
 	csv_file my_file;		//to save the file data in
 	std::string file_name = read_text("What is tha name of the file? (must be in the same directory) ");		//file name?
 
-	while (!read_csv(file_name.c_str(), my_file))		//if reading the file failed
+	while (!user_main_csv(file_name.c_str(), my_file))		//if reading the file failed
 	{
 		std::cout << "Please make sure that the file is in the same directory, and is not being used by other processor" << std::endl;
 		file_name = read_text("What is tha name of the file? ");

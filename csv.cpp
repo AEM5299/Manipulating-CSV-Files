@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 #include <iomanip>
-#include <stdexcept>
+#include <cstring>
 #include "csv.h"
 #include "splashkit.h"
 #include "types.h"
@@ -12,11 +12,12 @@
 
 /*
 *	A function that reads a .csv file into a 2D vector of strings.
-*	@param		file_name		the file name to read
-*	@param		my_file_info	the variable that file will be saved to.
-*	@return		bool			true if the file is opened succesfully. false otherwise.
+*	@param		file_name			the file name to read
+*	@param		my_file_info		the variable that file will be saved to.
+*	@param		skip_first_line		whether to skip the first line of the file or not (default no)
+*	@return		bool				true if the file is opened succesfully. false otherwise.
 */
-bool read_csv(const char file_name[], csv_file &my_file_info)
+bool read_csv_file (const char file_name[], string_2d_vector &save_to, bool skip_first_line)
 {
 	std::ifstream my_file;
 	my_file.open(file_name);		//open the file
@@ -24,31 +25,49 @@ bool read_csv(const char file_name[], csv_file &my_file_info)
 	if(my_file.is_open())			//is file opened?
 	{
 		std::string line;
-		std::string line2;
+		if (skip_first_line)
+			std::getline(my_file, line, '\n');
 		//reading process could be improved a lot.
 		while (std::getline(my_file, line, '\n'))		//save the entire line into the variable
 		{
 			std::stringstream temp (line);				//save the line read in a stringstream, so we could perform opertations on it.
 			std::vector<std::string> dummy;				//dummy vector, saving data temporarily
-			while (temp.good())							//is temp stringstream good? (didn't reach the end/no errors occured)
+			std::string substr;						//substring
+			while (std::getline(temp, substr, ','))					//is temp stringstream good? (didn't reach the end/no errors occured)
 			{
-				std::string substr;						//substring
-				std::getline(temp, substr, ',');		//save data to the next comma in the substring
 				dummy.push_back(substr);				//push the substring in dummy vector
 			}
-			my_file_info.vector.push_back(dummy);		//push entire dummy vector into our file's vector
+			save_to.push_back(dummy);		//push entire dummy vector into our file's vector
 		}
 		my_file.close();								//close file
-		my_file_info.has_headers = read_boolean("Does your file have headers? (y/n) ");		//do the file have headers? will be used to determine behaviour later
-		std::cout << "Your file has been read successfully" << std::endl;
 		return true;
 	}
 	else 
 	{
+		return false;
+	}
+}
+
+/*
+*	A function to read a the main csv file's data
+*	@param		file_name		the file name to read
+*	@param		my_file_info	the variable that file will be saved to.
+*	@return		bool			true if the file is opened succesfully. false otherwise.
+*/
+bool user_main_csv(const char file_name[], csv_file &my_file_info)
+{
+	strcpy(my_file_info.file_name, file_name);			//save file name
+	if (read_csv_file(file_name, my_file_info.vector))		// did the reading process succeed?
+	{
+		my_file_info.has_headers = read_boolean("Does your file have headers? (y/n) ");		//do the file have headers? will be used to determine behaviour later
+		std::cout << "Your file has been read successfully" << std::endl;
+		return true;
+	}
+	else
+	{
 		std::cout << "Unable to open file" << std::endl;
 		return false;
 	}
-
 }
 
 /*
@@ -58,6 +77,7 @@ bool read_csv(const char file_name[], csv_file &my_file_info)
 */
 void print_headers(const string_2d_vector &csv_file, char seperator)
 {
+	//to iterate over the entire vector
 	for(int i = 0; i < csv_file[0].size(); i++)
 	{
 		std::cout << csv_file[0][i];
@@ -73,19 +93,25 @@ void print_headers(const string_2d_vector &csv_file, char seperator)
 */
 int get_index_by_header(const std::vector<std::string> &headers, const std::string &header)
 {
+	//added to accomodate user defined operations
+	if (trim(to_lowercase(header)) == "nil")
+		return -1;
+	
 	bool duplicate = false;
 	int idx = -1;
 
+	//to iterate over the entire vector
 	for (int i = 0; i < headers.size(); i++)
 	{
-		if(to_lowercase(header) == to_lowercase(headers[i]))
+		if(trim(to_lowercase(header)) == trim(to_lowercase(headers[i])))	//is it a match?
 		{
-			if (idx != -1)
+			if (idx != -1)		//was the idx value changed? (-1 is default)
 				duplicate = true;
 			idx = i;
 		}
 	}
-	if (duplicate) std::cout << "There are multiple headers with this name. The latest will be used" << std::endl;
+	if (duplicate)		//did we find a dublicate during the search
+		std::cout << "There are multiple headers with this name. The latest will be used" << std::endl;
 
 	return idx;
 }
@@ -98,22 +124,23 @@ int get_index_by_header(const std::vector<std::string> &headers, const std::stri
 */
 bool convert_csv_data_double(csv_file &my_csv_file, int idx)
 {
-	static int last_index = -1;			//to keep it's value when the function exit
+	static int last_index = -1;			//to keep it's value when the function exits
 	
-	if (last_index == idx)
+	if (last_index == idx && !my_csv_file.operations_vector.empty())		//are we trying to convert the same values again?
 		return true;					//the vector already have the data, we don't need to convert it again
 	
-	my_csv_file.operations_vector.clear();
+	my_csv_file.operations_vector.clear();			//clear the vector
+	//to iterate over the entire vector
 	for(int i = my_csv_file.has_headers? 1 : 0; i < my_csv_file.vector.size(); i++)
 	{
-		try 
+		try
 		{
 			my_csv_file.operations_vector.push_back(std::stod(my_csv_file.vector[i][idx]));
-		} catch (const std::invalid_argument& ia)
+		} catch (const std::invalid_argument& ia)		//is an invalid_arguemnt exception get thrown?
 		{
 			std::cout << "This header containts non-numbers data at " << get_index_alignment(my_csv_file, i) << std::endl;
 			return false;
-		} catch (const std::out_of_range& ia)
+		} catch (const std::out_of_range& ia)		////is an out_of_range exception get thrown?
 		{
 			std::cout << "This column contain data out of range at " << get_index_alignment(my_csv_file, i) << std::endl;
 			return false; 
@@ -128,7 +155,7 @@ bool convert_csv_data_double(csv_file &my_csv_file, int idx)
 *	@param		my_csv_file		The file's data
 *	@param		idx				The index of the 
 */
-void check_against_range(csv_file &my_csv_file, int idx)
+void check_against_range(csv_file &my_csv_file, int idx, bool to_update_summary)
 {
 	//Did the conversion to doubles succeed?
 	if (convert_csv_data_double(my_csv_file, idx))
@@ -182,9 +209,12 @@ void check_against_range(csv_file &my_csv_file, int idx)
 			}
 		}
 
-		//The array of data which will be passed to the update function.
-		double arr[] = {min, max};
-		update_summary(my_csv_file, idx, arr, less_than, more_than);
+		if (to_update_summary)
+		{
+			//The array of data which will be passed to the update summary function.
+			double arr[] = {min, max};
+			update_summary(my_csv_file, idx, arr, less_than, more_than);
+		}
 
 	}
 	
@@ -195,7 +225,7 @@ void check_against_range(csv_file &my_csv_file, int idx)
 *	@param		my_csv_file		The file's data
 *	@param		idx				The index of the 
 */
-void get_avg_min_max(csv_file &my_csv_file, int idx)
+void get_avg_min_max(csv_file &my_csv_file, int idx, bool to_update_summary)
 {
 	//Did the conversion to double succeed?
 	if (convert_csv_data_double(my_csv_file, idx))
@@ -234,9 +264,12 @@ void get_avg_min_max(csv_file &my_csv_file, int idx)
 		std::cout << std::setprecision(4) << "The maximum is: " << max << ". at Index #" << get_index_alignment(my_csv_file, max_idx) << std::endl;
 		std::cout << std::setprecision(4) << "The average is: " << sum / my_csv_file.operations_vector.size() << std::endl;
 
-		//The array of data which will be passed to the update function.
-		double arr[] = {min, sum / my_csv_file.operations_vector.size(), max, (double)min_idx, (double)max_idx};
-		update_summary(my_csv_file, idx, arr);
+		if (to_update_summary)
+		{
+			//The array of data which will be passed to the update summary function.
+			double arr[] = {min, sum / my_csv_file.operations_vector.size(), max, (double)min_idx, (double)max_idx};
+			update_summary(my_csv_file, idx, arr);
+		}
 
 	}
 	
@@ -430,4 +463,298 @@ int get_index_alignment(const csv_file &my_file, int idx)
 		return idx + 2;
 
 	return idx + 1;
+}
+
+/*
+*	This function reads the user defined operatiaons file into a
+*	 2d string vector.
+*	@param		my_file		main csv file info
+*/
+void user_defined_operations(csv_file &my_file)
+{
+	string_2d_vector operations;		//a vector to save the data to
+	read_csv_file("operations.csv", operations, true);		//read the file into operations vector
+
+	parse_user_operations(operations, my_file);			//translate the data
+}
+
+/*
+*	a function to translate the data read by user_defined_operations
+*	 to values we can use then by the program.
+*	@param		ops			2d string vector which the data was saved into
+*	@param		my_file		main csv file info
+*/
+void parse_user_operations(const string_2d_vector &ops, csv_file &my_file)
+{
+	my_file.user_operations.clear();		//clear the vector from any data
+	for (int i = 0; i < ops.size(); i++)
+	{
+		custom_user_operations dummy;		//just a dummy vector to temporarily save the data into
+		dummy.name = ops[i][0];													//idx 0 is operation's name
+		dummy.row_1 = get_index_by_header(my_file.vector[0], ops[i][1]);		//idx 1 is row_1
+		dummy.operation_1 = get_math_operation(ops[i][2]);						//idx 2 is math operator 1
+		dummy.row_2 = get_index_by_header(my_file.vector[0], ops[i][3]);		//idx 3 is row_2
+		dummy.operation_2 = get_math_operation(ops[i][4]);						//idx 4 is math operator 2
+		dummy.number = std::stod(ops[i][5]);									//idx 5 is multiplier
+		user_range_to_array(dummy.excellent_range, ops[i][6]);					//idx 6 is excellent range
+		user_range_to_array(dummy.accepted_range1, ops[i][7]);					//idx 7 is accepted range 1
+		user_range_to_array(dummy.accepted_range2, ops[i][8]);					//idx 8 is accepted range 2
+		if (dummy.row_1 != -1)
+			my_file.user_operations.push_back(dummy);				//push to user_operations vector
+		else
+			std::cout << "Operation #" << i + 1 << "wasn't saved. Row 1 must be valid" << std::endl;
+	}
+
+}
+
+/*
+*	function to convert the mathematical operator, to one of
+*	 math_operations options. +,-,* and / only is supported.
+*	@param		operation			The operator string
+*	@return		math_operations		The mathematical operation
+*/
+math_operations get_math_operation (const std::string &math_sign)
+{
+	if (math_sign == "+")
+		return MATH_ADDITION;
+	else if (math_sign == "-")
+		return MATH_SUBSTRACTION;
+	else if (math_sign == "*")
+		return MATH_MULTIPLICATION;
+	else if (math_sign == "/")
+		return MATH_DIVISION;
+	else return MATH_MAX_NUM;
+}
+
+#ifdef _DEBUG_
+/*
+*	a function used during debug to print the operations in sequence of ints
+*/
+void print_user_operation (const csv_file &my_file)
+{
+	for(int i = 0; i < my_file.user_operations.size(); i++)
+	{
+		std::cout << my_file.user_operations[i].name << ", ";
+		std::cout << my_file.user_operations[i].row_1 << ", ";
+		std::cout << my_file.user_operations[i].operation_1 << ", ";
+		std::cout << my_file.user_operations[i].row_2 << ", ";
+		std::cout << my_file.user_operations[i].operation_2 << ", ";
+		std::cout << my_file.user_operations[i].number << ", ";
+		std::cout << my_file.user_operations[i].excellent_range[0] << " - ";
+		std::cout << my_file.user_operations[i].excellent_range[1] << ", ";
+		std::cout << my_file.user_operations[i].accepted_range1[0] << " - ";
+		std::cout << my_file.user_operations[i].accepted_range1[1] << ", ";
+		std::cout << my_file.user_operations[i].accepted_range2[0] << " - ";
+		std::cout << my_file.user_operations[i].accepted_range2[1] << std::endl;
+	}
+}
+#endif
+
+/*
+*	performs the custom operation that has the passed index
+*	@param		my_file		main csv file info
+*	@param		idx			Index of desired custom operation
+*/
+void do_custom_operation(csv_file &my_file, int idx)
+{
+	if (idx == -1 || idx > my_file.user_operations.size())		//is the index valid?
+		return;
+	
+	const int& index_1 = my_file.user_operations[idx].row_1;			//just an alias, for shroter function calls
+	const int& index_2 = my_file.user_operations[idx].row_2;			//just an alias, for shroter function calls
+	const custom_user_operations& rule = my_file.user_operations[idx];	//just an alias, for shroter function calls
+	std::vector<range_option> result_vec;			//a vector to save the results into
+	
+	//to iterate over our entire vector
+	for (int i = 1; i < my_file.vector.size(); i++)
+	{
+		//get the result
+		double result = perform_math_op(rule, std::stod(my_file.vector[i][index_1]), index_2 == -1? 0 : std::stod(my_file.vector[i][index_2]), my_file.user_operations[idx].number);
+		result_vec.push_back(check_range_custom(result, rule));			//push result to vector
+	}
+
+	my_file.user_operations[idx].results = result_vec;					//save results vector to main csv info
+	std::cout << "Operation Done! results are saved summary, use the export option to inspect them" << std::endl;
+}
+
+/*
+*	converts a string of 2 numbers seperated by a /, into an array of 2 elements
+*	@param		array			a pointer to the array we want to save the data into
+*	@apram		range_String	the string containing the 2 numbers
+*/
+void user_range_to_array(double array[], const std::string &range_string)
+{
+	if (trim(to_lowercase(range_string)) == "nil")		//does the string contains nil?
+		return;			//leave the default data (0,0)
+	
+	std::string::size_type pos = range_string.find('/');		//find the position of '/' in the string
+	if (pos != range_string.npos)
+	{
+		array[0] = stod(trim(range_string.substr(0, pos)));			//index 0 is from the start of string till the '/' position
+		array[1] = stod(trim(range_string.substr(pos + 1)));		//index 1 is from the '/' position +1 till end
+	}
+}
+
+/*
+*	performs a mathematical operation, and returns the result.
+*	@param		rule	The custom operation we are performing
+*	@param		val1	Value of row_1
+*	@param		val2	value of row_2
+*	@param		val3	value of multiplier
+*	@return		double	the result
+*/
+double perform_math_op(const custom_user_operations &rule, double val1, double val2, double val3)
+{
+	double result = val1;
+
+	if (rule.row_2 != -1)		//is the row 2 index valid?
+	{
+		if (rule.operation_1 == MATH_ADDITION)
+			result += val2;
+		else if (rule.operation_1 == MATH_SUBSTRACTION)
+			result -= val2;
+		else if (rule.operation_1 == MATH_MULTIPLICATION)
+			result *= val2;
+		else if (rule.operation_1 == MATH_DIVISION)
+			result /= val2;
+	}
+	
+	if (rule.operation_2 == MATH_ADDITION)
+		result += val3;
+	else if (rule.operation_2 == MATH_SUBSTRACTION)
+		result -= val3;
+	else if (rule.operation_2 == MATH_MULTIPLICATION)
+		result *= val3;
+	else if (rule.operation_2 == MATH_DIVISION)
+		result /= val3;
+
+	return result;
+}
+
+/*
+*	a function to check a value against the range specified in a custom operation
+*	@param		value			The value we to check
+*	@param		rule			The custom operation
+*	@return		range_option	The range it belongs to
+*/
+range_option check_range_custom(double value, const custom_user_operations &rule)
+{
+	//is the value inside the excellent range inclusive? (range limits must be different)
+	if (rule.excellent_range[0] != rule.excellent_range[1] && value >= rule.excellent_range[0] && value <= rule.excellent_range[1])
+		return RANGE_EXCELLENT;
+	//is the value inside one of the accepted ranges inclusive? (range limits must be different)
+	if ((rule.accepted_range1[0] != rule.accepted_range1[1] && value >= rule.accepted_range1[0] && value <= rule.accepted_range1[1])
+		|| (rule.accepted_range2[0] != rule.accepted_range2[1] && value >= rule.accepted_range2[0] && value <= rule.accepted_range2[1]))
+		return RANGE_ACCEPTED;
+	//neither inside the accepted range nor the excellent range
+	return RANGE_BAD;
+	
+}
+
+/*
+*	exports the results of our custom operations to a text file.
+*	@param		my_file		main csv file info
+*/
+void export_custom_ops_summary(const csv_file &my_file)
+{
+	std::ofstream output_file;				//file stream
+	output_file.open("Custom_Output.txt", std::ofstream::trunc);		//Open the file, and discard any contents
+	if (output_file.is_open())					//did we successfully opened the file?
+	{
+		output_file << "==== User Operations Summary ====" << std::endl;
+		custom_ops_export_options option = custom_ops_get_option();			//get user choice to what to export
+		//to iterate over our entire vector
+		for (int i = 0; i < my_file.user_operations.size(); i++)
+		{
+			if (my_file.user_operations[i].results.size() == 0)		//if the results vector empty, skip the iteration
+				continue;
+			output_file << "== " << my_file.user_operations[i].name << " ==" << std::endl;		//name of operation
+
+			{
+				output_file << "Out-of-range values indices: ";
+				bool comma = false;
+				//to iterate over our entire vector
+				for(int j = 0; j < my_file.user_operations[i].results.size(); j++)
+				{
+					if(my_file.user_operations[i].results[j] != RANGE_BAD)			//is value not classified as range bad?
+						continue;													//skip the iteration
+					if (comma) output_file << ", ";
+					output_file << get_index_alignment(my_file, j);				//print the value's index
+					comma = true;
+				}
+			}
+
+			if (option == EXPORT_ACCEPTED || option == EXPORT_ALL)		//if chosen option was including accepted range
+			{
+				output_file << "\n";
+				output_file << "Accepted values indices: ";
+				bool comma = false;
+				//to iterate over our entire vector
+				for(int j = 0; j < my_file.user_operations[i].results.size(); j++)
+				{
+					if(my_file.user_operations[i].results[j] != RANGE_ACCEPTED)			//is value not classified as range accepted?
+						continue;														//skip the iteration
+					if (comma) output_file << ", ";
+					output_file << get_index_alignment(my_file, j);				//print the value's index
+					comma = true;
+				}
+			}
+
+			if (option == EXPORT_ALL)		//if chosen option was including excellent range
+			{
+				output_file << "\n";
+				output_file << "Excellent values indices: ";
+				bool comma = false;
+				//to iterate over our entire vector
+				for(int j = 0; j < my_file.user_operations[i].results.size(); j++)
+				{
+					if(my_file.user_operations[i].results[j] != RANGE_EXCELLENT)			//is value not classified as range excellent?
+						continue;															//skip the iteration
+					if (comma) output_file << ", ";
+					output_file << get_index_alignment(my_file, j);				//print the value's index
+					comma = true;
+				}
+			}
+			output_file << "\n======================" << std::endl;
+		}
+		output_file.close();			//close the file
+		std::cout << "Summary exported to Custom_Output.txt" << std::endl;
+	}
+	else
+		std::cout << "Error while opening the file. Please make sure Custom_Output.txt is not used by another process" << std::endl;
+}
+
+/*
+*	lets the user to choose of the the exports option
+*	@return		custom_ops_export_options	the export option choosen
+*/
+custom_ops_export_options custom_ops_get_option()
+{
+	std::cout << "What do you want to export?" << std::endl;
+	std::cout << "1: Only Out of Range values" << std::endl;
+	std::cout << "2: Accepted and Out of Range values" << std::endl;
+	std::cout << "3: All" << std::endl;
+
+	int option = get_number<int>("Your Choice: ", 1, 3);		//get number as int, between 1 and 3 inclusive
+	return static_cast<custom_ops_export_options>(option - 1);	//cast the chosen number to a custom_ops_export_options value
+}
+
+/*
+*	reloads the main csv file, to capture any changes made to the file
+*	@param		my_file		main csv file info
+*/
+void reload_file(csv_file &my_file)
+{
+	//clearing the vectors
+	my_file.operations_vector.clear();
+	my_file.summary.clear();
+	my_file.user_operations.clear();
+	my_file.vector.clear();
+
+	while (!user_main_csv(my_file.file_name, my_file))		//reading failed
+	{
+		std::cout << "Press Enter to try again...";
+		std::cin.ignore(32767, '\n');
+	}
+	std::cout << "Reloading Done" << std::endl;
 }

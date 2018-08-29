@@ -13,6 +13,8 @@ enum main_menu_options
 	OPTION_CHECK_RANGE,
 	OPTION_CALCULATE_AVG_MIN_MAX,
 	OPTION_OUTPUT_SUMMARY,
+	OPTION_CUSTOM,
+	OPTION_RELOAD_FILE,
 	OPTION_EXIT,
 	OPTION_MAX_NUM
 };
@@ -22,5 +24,11 @@ enum main_menu_options
 *	@param		my_csv_file		a csv_file that contain file's data.
 */
 void main_menu(csv_file &my_csv_file);
+
+/*
+*	user defined operations sub-menu
+*	@param		my_file		main csv file info
+*/
+void menu_custom_operation(csv_file &my_file);
 
 #endif
