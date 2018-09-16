@@ -20,7 +20,7 @@ enum main_menu_options
 };
 
 /*
-*	The main menu to control the program....
+*	The main menu to control the program
 *	@param		my_csv_file		a csv_file that contain file's data.
 */
 void main_menu(csv_file &my_csv_file);

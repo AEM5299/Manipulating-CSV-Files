@@ -72,16 +72,16 @@ bool user_main_csv(const char file_name[], csv_file &my_file_info)
 
 /*
 *	a function to print all the header (row 0) in the csx vector.
-*	@param		csv_file		the vector to read from
+*	@param		my_file			csv main file info
 *	@param		seperator		the character printed after each value
 */
-void print_headers(const string_2d_vector &csv_file, char seperator)
+void print_headers(const csv_file &my_file, char seperator)
 {
 	//to iterate over the entire vector
-	for(int i = 0; i < csv_file[0].size(); i++)
+	for(int i = 0; i < my_file.vector[0].size(); i++)
 	{
-		std::cout << csv_file[0][i];
-		if (i != csv_file[0].size() - 1) std::cout << seperator; 
+		std::cout << my_file.vector[0][i];
+		if (i != my_file.vector[0].size() - 1) std::cout << seperator; 
 	}
 }
 
@@ -118,31 +118,31 @@ int get_index_by_header(const std::vector<std::string> &headers, const std::stri
 
 /*
 *	Converts a vector of strings, to a vector of doubles
-*	@param		my_csv_file			the file's data
+*	@param		my_file				the file's data
 *	@param		idx					the index if the column we want to convert
 *	@return		bool				true if file reading succeeded, false otherwise
 */
-bool convert_csv_data_double(csv_file &my_csv_file, int idx)
+bool convert_main_csv_double(csv_file &my_file, int idx)
 {
 	static int last_index = -1;			//to keep it's value when the function exits
 	
-	if (last_index == idx && !my_csv_file.operations_vector.empty())		//are we trying to convert the same values again?
+	if (last_index == idx && !my_file.operations_vector.empty())		//are we trying to convert the same values again?
 		return true;					//the vector already have the data, we don't need to convert it again
 	
-	my_csv_file.operations_vector.clear();			//clear the vector
+	my_file.operations_vector.clear();			//clear the vector
 	//to iterate over the entire vector
-	for(int i = my_csv_file.has_headers? 1 : 0; i < my_csv_file.vector.size(); i++)
+	for(int i = my_file.has_headers? 1 : 0; i < my_file.vector.size(); i++)
 	{
 		try
 		{
-			my_csv_file.operations_vector.push_back(std::stod(my_csv_file.vector[i][idx]));
+			my_file.operations_vector.push_back(std::stod(my_file.vector[i][idx]));
 		} catch (const std::invalid_argument& ia)		//is an invalid_arguemnt exception get thrown?
 		{
-			std::cout << "This header containts non-numbers data at " << get_index_alignment(my_csv_file, i) << std::endl;
+			std::cout << "This column contains non-numbers data at " << get_index_alignment(my_file, i) << std::endl;
 			return false;
 		} catch (const std::out_of_range& ia)		////is an out_of_range exception get thrown?
 		{
-			std::cout << "This column contain data out of range at " << get_index_alignment(my_csv_file, i) << std::endl;
+			std::cout << "This column contains data out of range at " << get_index_alignment(my_file, i) << std::endl;
 			return false; 
 		}
 	}
@@ -152,16 +152,16 @@ bool convert_csv_data_double(csv_file &my_csv_file, int idx)
 
 /*
 *	Checks a column agaisnt a range. Outputs out of range values indices to user.
-*	@param		my_csv_file		The file's data
+*	@param		my_file		The file's data
 *	@param		idx				The index of the 
 */
-void check_against_range(csv_file &my_csv_file, int idx, bool to_update_summary)
+void check_against_range(csv_file &my_file, int idx, bool to_update_summary)
 {
 	//Did the conversion to doubles succeed?
-	if (convert_csv_data_double(my_csv_file, idx))
+	if (convert_main_csv_double(my_file, idx))
 	{
 		//is the vector empty?
-		if (my_csv_file.operations_vector.size() == 0)
+		if (my_file.operations_vector.size() == 0)
 		{
 			std::cout << "There are no data!" << std::endl;
 			return;
@@ -173,11 +173,11 @@ void check_against_range(csv_file &my_csv_file, int idx, bool to_update_summary)
 		std::vector<int> more_than;										//A vector to save more than maximum values' indices
 
 		//To iterate over the entire vector of data
-		for(int i = 0; i < my_csv_file.operations_vector.size(); i++)
+		for(int i = 0; i < my_file.operations_vector.size(); i++)
 		{
-			if (my_csv_file.operations_vector[i] < min)
+			if (my_file.operations_vector[i] < min)
 				less_than.push_back(i);						//if less than minimum, push index to the vector
-			if (my_csv_file.operations_vector[i] > max)
+			if (my_file.operations_vector[i] > max)
 				more_than.push_back(i);						//if more than maximum, push index to the vector
 		}
 
@@ -193,7 +193,7 @@ void check_against_range(csv_file &my_csv_file, int idx, bool to_update_summary)
 				if (i == 0)
 					std::cout << "The following is the index(s) of the data less than the minimum:-" << std::endl;
 
-				std::cout << get_index_alignment(my_csv_file, less_than[i]);
+				std::cout << get_index_alignment(my_file, less_than[i]);
 				if (i == less_than.size() - 1) std::cout << "\n";			//is it the last element?
 				else std::cout << ", ";
 			}
@@ -203,7 +203,7 @@ void check_against_range(csv_file &my_csv_file, int idx, bool to_update_summary)
 			{
 				if (i == 0)
 					std::cout << "The following is the index(s) of the data larger than the maximum:-" << std::endl;
-				std::cout << get_index_alignment(my_csv_file, more_than[i]);
+				std::cout << get_index_alignment(my_file, more_than[i]);
 				if (i == more_than.size() - 1) std::cout << "\n";
 				else std::cout << ", ";			//is it the last element?
 			}
@@ -213,7 +213,7 @@ void check_against_range(csv_file &my_csv_file, int idx, bool to_update_summary)
 		{
 			//The array of data which will be passed to the update summary function.
 			double arr[] = {min, max};
-			update_summary(my_csv_file, idx, arr, less_than, more_than);
+			update_summary(my_file, idx, arr, less_than, more_than);
 		}
 
 	}
@@ -222,53 +222,53 @@ void check_against_range(csv_file &my_csv_file, int idx, bool to_update_summary)
 
 /*
 *	Calculate the average of a column, along with the minimu and the maximum. And shows them to user.
-*	@param		my_csv_file		The file's data
+*	@param		my_file			The file's data
 *	@param		idx				The index of the 
 */
-void get_avg_min_max(csv_file &my_csv_file, int idx, bool to_update_summary)
+void get_avg_min_max(csv_file &my_file, int idx, bool to_update_summary)
 {
 	//Did the conversion to double succeed?
-	if (convert_csv_data_double(my_csv_file, idx))
+	if (convert_main_csv_double(my_file, idx))
 	{
 		//is the vector empty?
-		if (my_csv_file.operations_vector.size() == 0)
+		if (my_file.operations_vector.size() == 0)
 		{
 			std::cout << "There are no data!" << std::endl;
 			return;
 		}
 
-		double min = my_csv_file.operations_vector[0];
-		double max = my_csv_file.operations_vector[0];
+		double min = my_file.operations_vector[0];
+		double max = my_file.operations_vector[0];
 		double sum = 0;
 		int min_idx = 0;
 		int max_idx = 0;
 
 		//To iterate over the entire vector of data
-		for (int i = 0; i < my_csv_file.operations_vector.size(); i++)
+		for (int i = 0; i < my_file.operations_vector.size(); i++)
 		{
-			sum += my_csv_file.operations_vector[i];
-			if (my_csv_file.operations_vector[i] > max)
+			sum += my_file.operations_vector[i];
+			if (my_file.operations_vector[i] > max)
 			{
-				max = my_csv_file.operations_vector[i];
+				max = my_file.operations_vector[i];
 				max_idx = i;
 			}
-			if (my_csv_file.operations_vector[i] < min)
+			if (my_file.operations_vector[i] < min)
 			{
-				min = my_csv_file.operations_vector[i];
+				min = my_file.operations_vector[i];
 				min_idx = i;
 			}
 		}
 
 		//Print to user the min, max and avg, all set to 4 decimals places
-		std::cout << std::setprecision(4) << "The minimum is: " << min << ". at Index #" << get_index_alignment(my_csv_file, min_idx) << std::endl;
-		std::cout << std::setprecision(4) << "The maximum is: " << max << ". at Index #" << get_index_alignment(my_csv_file, max_idx) << std::endl;
-		std::cout << std::setprecision(4) << "The average is: " << sum / my_csv_file.operations_vector.size() << std::endl;
+		std::cout << std::setprecision(4) << "The minimum is: " << min << ". at Index #" << get_index_alignment(my_file, min_idx) << std::endl;
+		std::cout << std::setprecision(4) << "The maximum is: " << max << ". at Index #" << get_index_alignment(my_file, max_idx) << std::endl;
+		std::cout << std::setprecision(4) << "The average is: " << sum / my_file.operations_vector.size() << std::endl;
 
 		if (to_update_summary)
 		{
 			//The array of data which will be passed to the update summary function.
-			double arr[] = {min, sum / my_csv_file.operations_vector.size(), max, (double)min_idx, (double)max_idx};
-			update_summary(my_csv_file, idx, arr);
+			double arr[] = {min, sum / my_file.operations_vector.size(), max, (double)min_idx, (double)max_idx};
+			update_summary(my_file, idx, arr);
 		}
 
 	}
@@ -278,22 +278,22 @@ void get_avg_min_max(csv_file &my_csv_file, int idx, bool to_update_summary)
 /*
 *	A procedure to update the summary vector's data. It's an overloaded function, this version updates the
 *	min,max and avg parts of the summary.
-*	@param		my_csv_file		The opened file's data
+*	@param		my_file			The opened file's data
 *	@param		index			The index of the column the operation performed on
 *	@param		data			a pointer to an array have the min, avg, max, min index and max index values, at that same order
 */
-void update_summary(csv_file &my_csv_file, int index, const double* data)
+void update_summary(csv_file &my_file, int index, const double* data)
 {
 	bool exist = false;
 	int idx = -1;
 	//does our file have header? if yes, assign the header to our variable, if no, assign the index plus one.
-	std::string header = my_csv_file.has_headers? my_csv_file.vector[0][index] : std::to_string(index + 1);
+	std::string header = my_file.has_headers? my_file.vector[0][index] : std::to_string(index + 1);
 
 	//to iterate over the entire vector of summaries
-	for (int i = 0; i < my_csv_file.summary.size(); i++)
+	for (int i = 0; i < my_file.summary.size(); i++)
 	{
 		//Did we find a matching header?
-		if (header == my_csv_file.summary[i].header)
+		if (header == my_file.summary[i].header)
 		{
 			exist = true;
 			idx = i;
@@ -305,11 +305,11 @@ void update_summary(csv_file &my_csv_file, int index, const double* data)
 	if (exist)
 	{
 		//it seems that we found a match earlier, so we will ust update the data
-		my_csv_file.summary[idx].min_value = data[0];
-		my_csv_file.summary[idx].avg = data[1];
-		my_csv_file.summary[idx].max_value = data[2];
-		my_csv_file.summary[idx].min_idx = data[3];
-		my_csv_file.summary[idx].max_idx = data[4];
+		my_file.summary[idx].min_value = data[0];
+		my_file.summary[idx].avg = data[1];
+		my_file.summary[idx].max_value = data[2];
+		my_file.summary[idx].min_idx = data[3];
+		my_file.summary[idx].max_idx = data[4];
 	}
 	else
 	{
@@ -321,30 +321,30 @@ void update_summary(csv_file &my_csv_file, int index, const double* data)
 		temp.max_value = data[2];
 		temp.min_idx = (int)data[3];
 		temp.max_idx = (int)data[4];
-		my_csv_file.summary.push_back(temp);
+		my_file.summary.push_back(temp);
 	}
 }
 
 /*
 *	A procedure to update the summary vector's data. It's an overloaded function, this version updates the
 *	less/more than parts of the summary.
-*	@param		my_csv_file		The opened file's data
+*	@param		my_file			The opened file's data
 *	@param		index			The index of the column the operation performed on
 *	@param		data			a pointer to an array have the min, max values, at that same order
 *	@param		less_than		The vector containing all indices of less_than data
 *	@param		more_than		The vector containing all indices of more_than data
 */
-void update_summary(csv_file &my_csv_file, int index, const double* data, const std::vector<int> &less_than, const std::vector<int> &more_than)
+void update_summary(csv_file &my_file, int index, const double* data, const std::vector<int> &less_than, const std::vector<int> &more_than)
 {
 	bool exist = false;
 	int idx = -1;
 	//does our file have header? if yes, assign the header to our variable, if no, assign the index plus one.
-	std::string header = my_csv_file.has_headers? my_csv_file.vector[0][index] : std::to_string(index + 1);
+	std::string header = my_file.has_headers? my_file.vector[0][index] : std::to_string(index + 1);
 
 	//to iterate over the entire vector of summaries
-	for (int i = 0; i < my_csv_file.summary.size(); i++)
+	for (int i = 0; i < my_file.summary.size(); i++)
 	{
-		if (header == my_csv_file.summary[i].header)
+		if (header == my_file.summary[i].header)
 		{
 			//Did we find a matching header?
 			exist = true;
@@ -357,10 +357,10 @@ void update_summary(csv_file &my_csv_file, int index, const double* data, const 
 	if (exist)
 	{
 		//it seems that we found a match earlier, so we will ust update the data
-		my_csv_file.summary[idx].min = data[0];
-		my_csv_file.summary[idx].max = data[1];
-		my_csv_file.summary[idx].less_than = less_than;
-		my_csv_file.summary[idx].more_than = more_than;
+		my_file.summary[idx].min = data[0];
+		my_file.summary[idx].max = data[1];
+		my_file.summary[idx].less_than = less_than;
+		my_file.summary[idx].more_than = more_than;
 	}
 	else
 	{
@@ -371,7 +371,7 @@ void update_summary(csv_file &my_csv_file, int index, const double* data, const 
 		temp.min = data[0];
 		temp.less_than = less_than;
 		temp.more_than = more_than;
-		my_csv_file.summary.push_back(temp);
+		my_file.summary.push_back(temp);
 	}
 }
 
